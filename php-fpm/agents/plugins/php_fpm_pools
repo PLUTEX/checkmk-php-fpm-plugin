@@ -66,6 +66,7 @@ class FCGIStatusClient:
             self.socket = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
             self.socket.settimeout(socket_timeout)
             self.socket.connect(socket_path)
+        self.socket_path = socket_path
         self.status_path = status_path
         self.request_id = 1
 
@@ -135,7 +136,7 @@ class FCGIStatusClient:
             pm_type = data.pop('process manager', None)
             for key in data:
                 spaceless_key = "_".join( key.split() )
-                sys.stdout.write("%s %s %s %s\n" % (pool_name, pm_type, spaceless_key, str(data[key])))
+                sys.stdout.write("%s %s %s %s\n" % (self.socket_path, pm_type, spaceless_key, str(data[key])))
 
 
 def parse_includes(filename):
