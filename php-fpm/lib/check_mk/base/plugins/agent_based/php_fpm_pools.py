@@ -51,6 +51,8 @@ from cmk.base.plugins.agent_based.agent_based_api.v1 import (
     register,
     render,
     Service,
+    Result,
+    State,
 )
 
 
@@ -60,14 +62,23 @@ Section = Mapping[str, Any]
 def parse_php_fpm_pools(string_table: StringTable) -> Section:
     data = {}
     for line in string_table:
-        if len(line) != 4:
+        if len(line) == 4:
+            pool_name, pm_type, metric, value = line
+            data.setdefault(pool_name, {})['process_manager'] = pm_type
+        elif len(line) == 3:
+            pool_name, metric, value = line
+        else:
             continue  # Skip unexpected lines
-        pool_name, pm_type, metric, value = line
-        item = '%s [%s]' % (pool_name, pm_type)
-        if item not in data:
-            data[item] = {}
 
-        data[item][metric] = int(value)
+        if pool_name not in data:
+            data[pool_name] = {}
+
+        try:
+            value = int(value)
+        except ValueError:
+            pass
+
+        data.setdefault(pool_name, {})[metric] = value
 
     return data
 
@@ -119,6 +130,11 @@ def check_php_fpm_pools(
             data['%s_per_sec' % key] = per_sec
             perfkeys.append('%s_per_sec' % key)
 
+    yield Result(
+        summary='[%s]' % data['process_manager'],
+        state=State.OK,
+    )
+
     for key in perfkeys:
         yield from check_levels(
             value=data[key],
@@ -143,7 +159,7 @@ def check_php_fpm_pools(
 
 register.check_plugin(
     name='php_fpm_pools',
-    service_name='PHP-FPM Pool %s Status',
+    service_name='PHP-FPM Pool %s',
     discovery_function=discover_php_fpm_pools,
     check_function=check_php_fpm_pools,
     check_ruleset_name='php_fpm_pools',

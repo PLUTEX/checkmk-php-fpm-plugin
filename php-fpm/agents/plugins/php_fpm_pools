@@ -132,10 +132,9 @@ class FCGIStatusClient:
         if hasattr(self, 'status_data'):
             data = json.loads(self.status_data.split(b"\r\n\r\n", 1)[1].decode('ascii'))
             pool_name = data.pop('pool', None)
-            pm_type = data.pop('process manager', None)
             for key in data:
                 spaceless_key = "_".join( key.split() )
-                sys.stdout.write("%s %s %s %s\n" % (pool_name, pm_type, spaceless_key, str(data[key])))
+                sys.stdout.write("%s %s %s\n" % (pool_name, spaceless_key, str(data[key])))
 
 
 def parse_includes(filename):
